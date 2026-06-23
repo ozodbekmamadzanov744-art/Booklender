@@ -7,6 +7,11 @@
 </head>
 <body>
 <div class="container">
+    <div class="nav">
+        <a href="/books">Книги</a>
+        <a href="/employees">Сотрудники</a>
+    </div>
+
     <h1>Библиотека</h1>
     <table class="books-table">
         <thead>
@@ -30,7 +35,12 @@
                 </td>
                 <td>
                     <#if book.takenBy??>
-                        ${book.takenBy}
+                        <#if employeesById[book.takenBy?string]??>
+                            <#assign employee = employeesById[book.takenBy?string]>
+                            <a href="/employees/${employee.id}">${employee.name}</a>
+                        <#else>
+                            ID ${book.takenBy}
+                        </#if>
                     <#else>
                         —
                     </#if>

@@ -12,6 +12,17 @@ body {
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
+.nav {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+.nav a {
+    color: #4a90d9;
+    font-weight: bold;
+    text-decoration: none;
+}
+.nav a:hover { text-decoration: underline; }
 .books-table {
     width: 100%;
     border-collapse: collapse;
@@ -45,3 +56,24 @@ body {
 }
 .book-info h1 { margin-top: 0; }
 .book-info p  { font-size: 16px; margin: 10px 0; color: #444; }
+.employee-profile {
+    margin-top: 24px;
+    margin-bottom: 28px;
+}
+.employee-profile h1 {
+    margin-bottom: 8px;
+}
+.employee-profile p {
+    color: #444;
+    font-size: 16px;
+    margin: 0;
+}
+.section-title {
+    margin-top: 28px;
+    margin-bottom: 12px;
+    font-size: 22px;
+}
+.empty-state {
+    margin: 0 0 20px;
+    color: #777;
+}

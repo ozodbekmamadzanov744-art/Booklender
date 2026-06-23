@@ -7,6 +7,11 @@
 </head>
 <body>
 <div class="container">
+    <div class="nav">
+        <a href="/books">Книги</a>
+        <a href="/employees">Сотрудники</a>
+    </div>
+
     <a href="/books">← Назад к списку</a>
     <div class="book-detail">
         <img src="${book.image}" alt="${book.title}" class="book-image">
@@ -20,7 +25,11 @@
                 </span>
             </p>
             <#if book.takenBy??>
-                <p><strong>Выдана сотруднику ID:</strong> ${book.takenBy}</p>
+                <#if takenByEmployee??>
+                    <p><strong>Выдана сотруднику:</strong> <a href="/employees/${takenByEmployee.id}">${takenByEmployee.name}</a></p>
+                <#else>
+                    <p><strong>Выдана сотруднику ID:</strong> ${book.takenBy}</p>
+                </#if>
             </#if>
         </div>
     </div>
