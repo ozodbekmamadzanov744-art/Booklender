@@ -1,0 +1,13 @@
+{
+  "books": [
+    { "id": 1, "title": "Чистый код",                        "author": "Роберт Мартин", "image": "/images/1.jpg", "status": "available", "takenBy": null },
+    { "id": 2, "title": "Паттерны проектирования",           "author": "Банда четырёх", "image": "/images/1.jpg", "status": "taken",     "takenBy": 1 },
+    { "id": 3, "title": "Java: эффективное программирование", "author": "Джошуа Блох",  "image": "/images/1.jpg", "status": "available", "takenBy": null },
+    { "id": 4, "title": "Рефакторинг",                       "author": "Мартин Фаулер", "image": "/images/1.jpg", "status": "taken",     "takenBy": 2 }
+  ],
+  "employees": [
+    { "id": 1, "name": "Иванов Иван Иванович",        "email": "ivanov@office.com",  "password": "pass123", "currentBooks": [2],    "pastBooks": [3] },
+    { "id": 2, "name": "Петрова Мария Сергеевна",     "email": "petrova@office.com", "password": "pass456", "currentBooks": [4],    "pastBooks": [] },
+    { "id": 3, "name": "Сидоров Алексей Николаевич",  "email": "sidorov@office.com", "password": "pass789", "currentBooks": [],     "pastBooks": [1, 2] }
+  ]
+}я
