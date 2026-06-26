@@ -197,6 +197,13 @@ public class BooklenderServer extends BasicServer {
         String name = params.get("name");
         String password = params.get("password");
 
+        if (name == null || name.isBlank() || !name.matches("[А-Яа-яЁёA-Za-z\\s]+")) {
+            Map<String, Object> model = new HashMap<>();
+            model.put("error", "ФИО должно содержать только буквы!");
+            renderTemplate(exchange, "register.ftlh", model);
+            return;
+        }
+
         boolean exists = employees.stream()
                 .anyMatch(e -> e.getEmail().equalsIgnoreCase(email));
 
