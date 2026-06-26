@@ -9,6 +9,7 @@ import kg.attractor.java.booklender.model.Book;
 import kg.attractor.java.server.BasicServer;
 import kg.attractor.java.server.ContentType;
 import kg.attractor.java.server.ResponseCodes;
+import kg.attractor.java.server.Utils;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -26,6 +27,8 @@ public class BooklenderServer extends BasicServer {
         super(host, port);
         registerGet("/books", this::handleBooksList);
         registerGet("/employees", this::handleEmployeesList);
+        registerGet("/register", this::handleRegisterGet);
+        registerPost("/register", this::handleRegisterPost);
 
         for (Book book : books) {
             final Book b = book;
@@ -180,5 +183,36 @@ public class BooklenderServer extends BasicServer {
         list.add(sidorov);
 
         return list;
+    }
+
+    private void handleRegisterGet(HttpExchange exchange) {
+        renderTemplate(exchange, "register.ftlh", new HashMap<>());
+    }
+
+    private void handleRegisterPost(HttpExchange exchange) {
+        String body = getBody(exchange);
+        Map<String, String> params = Utils.parseUrlEncoded(body, "&");
+
+        String email = params.get("email");
+        String name = params.get("name");
+        String password = params.get("password");
+
+        boolean exists = employees.stream()
+                .anyMatch(e -> e.getEmail().equalsIgnoreCase(email));
+
+        if (exists) {
+            Map<String, Object> model = new HashMap<>();
+            model.put("error", "Пользователь с таким email уже зарегистрирован!");
+            renderTemplate(exchange, "register.ftlh", model);
+            return;
+        }
+
+        int newId = employees.size() + 1;
+        Employee newEmployee = new Employee(newId, name, email, password);
+        employees.add(newEmployee);
+
+        Map<String, Object> model = new HashMap<>();
+        model.put("name", name);
+        renderTemplate(exchange, "register-success.ftlh", model);
     }
 }
