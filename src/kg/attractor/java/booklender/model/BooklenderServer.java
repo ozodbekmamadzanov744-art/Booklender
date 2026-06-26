@@ -9,6 +9,7 @@ import kg.attractor.java.booklender.model.Book;
 import kg.attractor.java.server.BasicServer;
 import kg.attractor.java.server.ContentType;
 import kg.attractor.java.server.ResponseCodes;
+import kg.attractor.java.server.Utils;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -26,6 +27,11 @@ public class BooklenderServer extends BasicServer {
         super(host, port);
         registerGet("/books", this::handleBooksList);
         registerGet("/employees", this::handleEmployeesList);
+        registerGet("/register", this::handleRegisterGet);
+        registerPost("/register", this::handleRegisterPost);
+        registerGet("/login", this::handleLoginGet);
+        registerPost("/login", this::handleLoginPost);
+        registerGet("/profile", this::handleProfileGet);
 
         for (Book book : books) {
             final Book b = book;
@@ -181,4 +187,79 @@ public class BooklenderServer extends BasicServer {
 
         return list;
     }
+
+    private void handleRegisterGet(HttpExchange exchange) {
+        renderTemplate(exchange, "register.ftlh", new HashMap<>());
+    }
+
+    private void handleRegisterPost(HttpExchange exchange) {
+        String body = getBody(exchange);
+        Map<String, String> params = Utils.parseUrlEncoded(body, "&");
+
+        String email = params.get("email");
+        String name = params.get("name");
+        String password = params.get("password");
+
+        if (name == null || name.isBlank() || !name.matches("[А-Яа-яЁёA-Za-z\\s]+")) {
+            Map<String, Object> model = new HashMap<>();
+            model.put("error", "ФИО должно содержать только буквы!");
+            renderTemplate(exchange, "register.ftlh", model);
+            return;
+        }
+
+        boolean exists = employees.stream()
+                .anyMatch(e -> e.getEmail().equalsIgnoreCase(email));
+
+        if (exists) {
+            Map<String, Object> model = new HashMap<>();
+            model.put("error", "Пользователь с таким email уже зарегистрирован!");
+            renderTemplate(exchange, "register.ftlh", model);
+            return;
+        }
+
+        int newId = employees.size() + 1;
+        Employee newEmployee = new Employee(newId, name, email, password);
+        employees.add(newEmployee);
+
+        Map<String, Object> model = new HashMap<>();
+        model.put("name", name);
+        renderTemplate(exchange, "register-success.ftlh", model);
+    }
+
+    private void handleLoginGet(HttpExchange exchange) {
+        renderTemplate(exchange, "login.ftlh", new HashMap<>());
+    }
+
+    private void handleLoginPost(HttpExchange exchange) {
+        String body = getBody(exchange);
+        Map<String, String> params = Utils.parseUrlEncoded(body, "&");
+
+        String email = params.get("email");
+        String password = params.get("password");
+
+        Employee found = employees.stream()
+                .filter(e -> e.getEmail().equalsIgnoreCase(email)
+                        && e.getPassword().equals(password))
+                .findFirst()
+                .orElse(null);
+
+        if (found == null) {
+            Map<String, Object> model = new HashMap<>();
+            model.put("error", "Авторизоваться не удалось, неверный идентификатор или пароль!");
+            renderTemplate(exchange, "login.ftlh", model);
+            return;
+        }
+
+        Map<String, Object> model = new HashMap<>();
+        model.put("employee", found);
+        renderTemplate(exchange, "profile.ftlh", model);
+    }
+
+    private void handleProfileGet(HttpExchange exchange) {
+        Employee stub = new Employee(0, "Некий пользователь", "unknown@office.com", "");
+        Map<String, Object> model = new HashMap<>();
+        model.put("employee", stub);
+        renderTemplate(exchange, "profile.ftlh", model);
+    }
+
 }
