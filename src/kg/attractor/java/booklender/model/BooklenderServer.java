@@ -29,6 +29,9 @@ public class BooklenderServer extends BasicServer {
         registerGet("/employees", this::handleEmployeesList);
         registerGet("/register", this::handleRegisterGet);
         registerPost("/register", this::handleRegisterPost);
+        registerGet("/login", this::handleLoginGet);
+        registerPost("/login", this::handleLoginPost);
+        registerGet("/profile", this::handleProfileGet);
 
         for (Book book : books) {
             final Book b = book;
@@ -222,4 +225,41 @@ public class BooklenderServer extends BasicServer {
         model.put("name", name);
         renderTemplate(exchange, "register-success.ftlh", model);
     }
+
+    private void handleLoginGet(HttpExchange exchange) {
+        renderTemplate(exchange, "login.ftlh", new HashMap<>());
+    }
+
+    private void handleLoginPost(HttpExchange exchange) {
+        String body = getBody(exchange);
+        Map<String, String> params = Utils.parseUrlEncoded(body, "&");
+
+        String email = params.get("email");
+        String password = params.get("password");
+
+        Employee found = employees.stream()
+                .filter(e -> e.getEmail().equalsIgnoreCase(email)
+                        && e.getPassword().equals(password))
+                .findFirst()
+                .orElse(null);
+
+        if (found == null) {
+            Map<String, Object> model = new HashMap<>();
+            model.put("error", "Авторизоваться не удалось, неверный идентификатор или пароль!");
+            renderTemplate(exchange, "login.ftlh", model);
+            return;
+        }
+
+        Map<String, Object> model = new HashMap<>();
+        model.put("employee", found);
+        renderTemplate(exchange, "profile.ftlh", model);
+    }
+
+    private void handleProfileGet(HttpExchange exchange) {
+        Employee stub = new Employee(0, "Некий пользователь", "unknown@office.com", "");
+        Map<String, Object> model = new HashMap<>();
+        model.put("employee", stub);
+        renderTemplate(exchange, "profile.ftlh", model);
+    }
+
 }
