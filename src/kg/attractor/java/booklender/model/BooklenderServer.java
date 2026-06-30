@@ -32,6 +32,7 @@ public class BooklenderServer extends BasicServer {
         registerGet("/profile", this::handleProfileGet);
         registerPost("/books/take", this::handleTakeBook);
         registerPost("/books/return", this::handleReturnBook);
+        registerGet("/logout", this::handleLogout);
 
         for (Book book : books) {
             final Book b = book;
@@ -373,6 +374,23 @@ public class BooklenderServer extends BasicServer {
         employee.setPastBooks(past);
 
         redirect303(exchange, "/profile");
+    }
+
+    private void handleLogout(HttpExchange exchange) {
+        String cookieStr = getCookies(exchange);
+        Map<String, String> cookies = Cookie.parse(cookieStr);
+        String sessionId = cookies.get("sessionId");
+
+        if (sessionId != null) {
+            sessions.remove(sessionId);
+        }
+
+        Cookie expiredCookie = Cookie.make("sessionId", "");
+        expiredCookie.setMaxAge(0);
+        expiredCookie.setHttpOnly(true);
+        setCookie(exchange, expiredCookie);
+
+        redirect303(exchange, "/login");
     }
 
 }
