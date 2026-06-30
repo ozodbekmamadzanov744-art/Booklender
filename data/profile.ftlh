@@ -53,6 +53,7 @@
     </#if>
 
     <a href="/books">Перейти к списку книг</a>
+    <p><a href="/logout">Выйти из системы</a></p>
 </div>
 </body>
 </html>
