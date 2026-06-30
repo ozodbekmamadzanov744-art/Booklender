@@ -6,10 +6,7 @@ import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import freemarker.template.TemplateExceptionHandler;
 import kg.attractor.java.booklender.model.Book;
-import kg.attractor.java.server.BasicServer;
-import kg.attractor.java.server.ContentType;
-import kg.attractor.java.server.ResponseCodes;
-import kg.attractor.java.server.Utils;
+import kg.attractor.java.server.*;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -22,6 +19,7 @@ public class BooklenderServer extends BasicServer {
     private final static Configuration freemarker = initFreeMarker();
     private final List<Book> books = createSampleBooks();
     private final List<Employee> employees = createSampleEmployees();
+    private final Map<String, Integer> sessions = new HashMap<>();
 
     public BooklenderServer(String host, int port) throws IOException {
         super(host, port);
@@ -32,6 +30,9 @@ public class BooklenderServer extends BasicServer {
         registerGet("/login", this::handleLoginGet);
         registerPost("/login", this::handleLoginPost);
         registerGet("/profile", this::handleProfileGet);
+        registerPost("/books/take", this::handleTakeBook);
+        registerPost("/books/return", this::handleReturnBook);
+        registerGet("/logout", this::handleLogout);
 
         for (Book book : books) {
             final Book b = book;
@@ -250,16 +251,146 @@ public class BooklenderServer extends BasicServer {
             return;
         }
 
-        Map<String, Object> model = new HashMap<>();
-        model.put("employee", found);
-        renderTemplate(exchange, "profile.ftlh", model);
+
+        String sessionId = generateSessionId();
+        sessions.put(sessionId, found.getId());
+
+
+        Cookie sessionCookie = Cookie.make("sessionId", sessionId);
+        sessionCookie.setMaxAge(600);
+        sessionCookie.setHttpOnly(true);
+        setCookie(exchange, sessionCookie);
+
+        redirect303(exchange, "/profile");
     }
 
     private void handleProfileGet(HttpExchange exchange) {
-        Employee stub = new Employee(0, "Некий пользователь", "unknown@office.com", "");
+        Employee employee = findEmployeeBySession(exchange);
+
         Map<String, Object> model = new HashMap<>();
-        model.put("employee", stub);
+
+        if (employee == null) {
+            model.put("employee", new Employee(0, "Некий пользователь", "unknown@office.com", ""));
+            renderTemplate(exchange, "profile.ftlh", model);
+            return;
+        }
+
+        model.put("employee", employee);
+        model.put("currentBooks", findBooksByIds(employee.getCurrentBooks()));
+
+        List<Book> available = new ArrayList<>();
+        for (Book book : books) {
+            if (book.isAvailable()) {
+                available.add(book);
+            }
+        }
+        model.put("availableBooks", available);
+
         renderTemplate(exchange, "profile.ftlh", model);
+    }
+
+    private Employee findEmployeeBySession(HttpExchange exchange) {
+        String cookieStr = getCookies(exchange);
+        Map<String, String> cookies = Cookie.parse(cookieStr);
+
+        String sessionId = cookies.get("sessionId");
+        if (sessionId == null) {
+            return null;
+        }
+
+        Integer employeeId = sessions.get(sessionId);
+        if (employeeId == null) {
+            return null;
+        }
+
+        return findEmployeeById(employeeId);
+    }
+
+    private String generateSessionId() {
+        return java.util.UUID.randomUUID().toString();
+    }
+
+    private void handleTakeBook(HttpExchange exchange) {
+        Employee employee = findEmployeeBySession(exchange);
+        if (employee == null) {
+            redirect303(exchange, "/login");
+            return;
+        }
+
+        String body = getBody(exchange);
+        Map<String, String> params = Utils.parseUrlEncoded(body, "&");
+        int bookId = Integer.parseInt(params.get("bookId"));
+
+        Book book = findBookById(bookId);
+        if (book == null || !book.isAvailable()) {
+            redirect303(exchange, "/profile");
+            return;
+        }
+
+        if (employee.getCurrentBooks().size() >= 2) {
+            redirect303(exchange, "/profile");
+            return;
+        }
+
+
+        book.setStatus("taken");
+        book.setTakenBy(employee.getId());
+
+        List<Integer> current = new ArrayList<>(employee.getCurrentBooks());
+        current.add(bookId);
+        employee.setCurrentBooks(current);
+
+        redirect303(exchange, "/profile");
+    }
+
+    private void handleReturnBook(HttpExchange exchange) {
+        Employee employee = findEmployeeBySession(exchange);
+        if (employee == null) {
+            redirect303(exchange, "/login");
+            return;
+        }
+
+        String body = getBody(exchange);
+        Map<String, String> params = Utils.parseUrlEncoded(body, "&");
+        int bookId = Integer.parseInt(params.get("bookId"));
+
+        Book book = findBookById(bookId);
+        if (book == null || !employee.getCurrentBooks().contains(bookId)) {
+            redirect303(exchange, "/profile");
+            return;
+        }
+
+        book.setStatus("available");
+        book.setTakenBy(null);
+
+        List<Integer> current = new ArrayList<>(employee.getCurrentBooks());
+        current.remove(Integer.valueOf(bookId));
+        employee.setCurrentBooks(current);
+
+        List<Integer> past = new ArrayList<>(employee.getPastBooks());
+        if (!past.contains(bookId)) {
+            past.add(bookId);
+        }
+        employee.setPastBooks(past);
+
+        redirect303(exchange, "/profile");
+    }
+
+    private void handleLogout(HttpExchange exchange) {
+        String cookieStr = getCookies(exchange);
+        Map<String, String> cookies = Cookie.parse(cookieStr);
+        String sessionId = cookies.get("sessionId");
+
+        if (sessionId != null) {
+            sessions.remove(sessionId);
+        }
+
+        Cookie expiredCookie = Cookie.make("sessionId", "");
+        expiredCookie.setMaxAge(0);
+        expiredCookie.setHttpOnly(true);
+        setCookie(exchange, expiredCookie);
+
+        redirect303(exchange, "/login");
     }
 
 }
