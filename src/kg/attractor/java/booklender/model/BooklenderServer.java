@@ -30,6 +30,8 @@ public class BooklenderServer extends BasicServer {
         registerGet("/login", this::handleLoginGet);
         registerPost("/login", this::handleLoginPost);
         registerGet("/profile", this::handleProfileGet);
+        registerPost("/books/take", this::handleTakeBook);
+        registerPost("/books/return", this::handleReturnBook);
 
         for (Book book : books) {
             final Book b = book;
@@ -264,12 +266,25 @@ public class BooklenderServer extends BasicServer {
     private void handleProfileGet(HttpExchange exchange) {
         Employee employee = findEmployeeBySession(exchange);
 
+        Map<String, Object> model = new HashMap<>();
+
         if (employee == null) {
-            employee = new Employee(0, "Некий пользователь", "unknown@office.com", "");
+            model.put("employee", new Employee(0, "Некий пользователь", "unknown@office.com", ""));
+            renderTemplate(exchange, "profile.ftlh", model);
+            return;
         }
 
-        Map<String, Object> model = new HashMap<>();
         model.put("employee", employee);
+        model.put("currentBooks", findBooksByIds(employee.getCurrentBooks()));
+
+        List<Book> available = new ArrayList<>();
+        for (Book book : books) {
+            if (book.isAvailable()) {
+                available.add(book);
+            }
+        }
+        model.put("availableBooks", available);
+
         renderTemplate(exchange, "profile.ftlh", model);
     }
 
@@ -292,6 +307,72 @@ public class BooklenderServer extends BasicServer {
 
     private String generateSessionId() {
         return java.util.UUID.randomUUID().toString();
+    }
+
+    private void handleTakeBook(HttpExchange exchange) {
+        Employee employee = findEmployeeBySession(exchange);
+        if (employee == null) {
+            redirect303(exchange, "/login");
+            return;
+        }
+
+        String body = getBody(exchange);
+        Map<String, String> params = Utils.parseUrlEncoded(body, "&");
+        int bookId = Integer.parseInt(params.get("bookId"));
+
+        Book book = findBookById(bookId);
+        if (book == null || !book.isAvailable()) {
+            redirect303(exchange, "/profile");
+            return;
+        }
+
+        if (employee.getCurrentBooks().size() >= 2) {
+            redirect303(exchange, "/profile");
+            return;
+        }
+
+
+        book.setStatus("taken");
+        book.setTakenBy(employee.getId());
+
+        List<Integer> current = new ArrayList<>(employee.getCurrentBooks());
+        current.add(bookId);
+        employee.setCurrentBooks(current);
+
+        redirect303(exchange, "/profile");
+    }
+
+    private void handleReturnBook(HttpExchange exchange) {
+        Employee employee = findEmployeeBySession(exchange);
+        if (employee == null) {
+            redirect303(exchange, "/login");
+            return;
+        }
+
+        String body = getBody(exchange);
+        Map<String, String> params = Utils.parseUrlEncoded(body, "&");
+        int bookId = Integer.parseInt(params.get("bookId"));
+
+        Book book = findBookById(bookId);
+        if (book == null || !employee.getCurrentBooks().contains(bookId)) {
+            redirect303(exchange, "/profile");
+            return;
+        }
+
+        book.setStatus("available");
+        book.setTakenBy(null);
+
+        List<Integer> current = new ArrayList<>(employee.getCurrentBooks());
+        current.remove(Integer.valueOf(bookId));
+        employee.setCurrentBooks(current);
+
+        List<Integer> past = new ArrayList<>(employee.getPastBooks());
+        if (!past.contains(bookId)) {
+            past.add(bookId);
+        }
+        employee.setPastBooks(past);
+
+        redirect303(exchange, "/profile");
     }
 
 }
