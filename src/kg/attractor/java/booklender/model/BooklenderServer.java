@@ -6,10 +6,7 @@ import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import freemarker.template.TemplateExceptionHandler;
 import kg.attractor.java.booklender.model.Book;
-import kg.attractor.java.server.BasicServer;
-import kg.attractor.java.server.ContentType;
-import kg.attractor.java.server.ResponseCodes;
-import kg.attractor.java.server.Utils;
+import kg.attractor.java.server.*;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -22,6 +19,7 @@ public class BooklenderServer extends BasicServer {
     private final static Configuration freemarker = initFreeMarker();
     private final List<Book> books = createSampleBooks();
     private final List<Employee> employees = createSampleEmployees();
+    private final Map<String, Integer> sessions = new HashMap<>();
 
     public BooklenderServer(String host, int port) throws IOException {
         super(host, port);
@@ -250,16 +248,50 @@ public class BooklenderServer extends BasicServer {
             return;
         }
 
-        Map<String, Object> model = new HashMap<>();
-        model.put("employee", found);
-        renderTemplate(exchange, "profile.ftlh", model);
+
+        String sessionId = generateSessionId();
+        sessions.put(sessionId, found.getId());
+
+
+        Cookie sessionCookie = Cookie.make("sessionId", sessionId);
+        sessionCookie.setMaxAge(600);
+        sessionCookie.setHttpOnly(true);
+        setCookie(exchange, sessionCookie);
+
+        redirect303(exchange, "/profile");
     }
 
     private void handleProfileGet(HttpExchange exchange) {
-        Employee stub = new Employee(0, "Некий пользователь", "unknown@office.com", "");
+        Employee employee = findEmployeeBySession(exchange);
+
+        if (employee == null) {
+            employee = new Employee(0, "Некий пользователь", "unknown@office.com", "");
+        }
+
         Map<String, Object> model = new HashMap<>();
-        model.put("employee", stub);
+        model.put("employee", employee);
         renderTemplate(exchange, "profile.ftlh", model);
+    }
+
+    private Employee findEmployeeBySession(HttpExchange exchange) {
+        String cookieStr = getCookies(exchange);
+        Map<String, String> cookies = Cookie.parse(cookieStr);
+
+        String sessionId = cookies.get("sessionId");
+        if (sessionId == null) {
+            return null;
+        }
+
+        Integer employeeId = sessions.get(sessionId);
+        if (employeeId == null) {
+            return null;
+        }
+
+        return findEmployeeById(employeeId);
+    }
+
+    private String generateSessionId() {
+        return java.util.UUID.randomUUID().toString();
     }
 
 }
