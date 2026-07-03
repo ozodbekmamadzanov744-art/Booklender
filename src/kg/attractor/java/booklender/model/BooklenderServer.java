@@ -294,6 +294,7 @@ public class BooklenderServer extends BasicServer {
             }
         }
         model.put("availableBooks", available);
+        model.put("pastBooks", findBooksByIds(employee.getPastBooks()));
 
         renderTemplate(exchange, "profile.ftlh", model);
     }
