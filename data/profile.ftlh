@@ -51,6 +51,19 @@
             </ul>
         </#if>
     </#if>
+    <#if pastBooks??>
+        <h2>История книг</h2>
+        <#if pastBooks?size == 0>
+            <p>Вы ещё не брали ни одной книги.</p>
+        <#else>
+            <ul>
+                <#list pastBooks as book>
+                    <li><a href="/books/${book.id}">${book.title}</a> — ${book.author}</li>
+                </#list>
+            </ul>
+        </#if>
+    </#if>
+
 
     <a href="/books">Перейти к списку книг</a>
     <p><a href="/logout">Выйти из системы</a></p>
