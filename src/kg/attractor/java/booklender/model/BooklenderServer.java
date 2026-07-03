@@ -161,10 +161,19 @@ public class BooklenderServer extends BasicServer {
 
     private List<Book> createSampleBooks() {
         List<Book> list = new ArrayList<>();
-        list.add(new Book(1, "Чистый код",                        "Роберт Мартин", "/images/1.jpg", "available", null));
-        list.add(new Book(2, "Паттерны проектирования",           "Банда четырёх", "/images/1.jpg", "taken",     1));
-        list.add(new Book(3, "Java: эффективное программирование", "Джошуа Блох",  "/images/1.jpg", "available", null));
-        list.add(new Book(4, "Рефакторинг",                       "Мартин Фаулер", "/images/1.jpg", "taken",     2));
+        Book b1 = new Book(1, "Чистый код", "Роберт Мартин", "/images/images01.jpg", "available", null);
+        b1.setDescription("Книга о том, как писать чистый, читаемый и поддерживаемый код. Обязательна к прочтению каждому разработчику.");
+        list.add(b1);
+        Book b2 = new Book(2, "Паттерны проектирования", "Банда четырёх", "/images/images02.jpg", "taken", 1);
+        b2.setDescription("Классическая книга о 23 паттернах проектирования. Описывает типовые решения часто встречающихся задач.");
+        list.add(b2);
+        Book b3 = new Book(3, "Java: эффективное программирование", "Джошуа Блох", "/images/images03.jpg", "available", null);
+        b3.setDescription("78 конкретных правил для написания эффективного и хорошо спроектированного Java кода.");
+        list.add(b3);
+        Book b4 = new Book(4, "Рефакторинг", "Мартин Фаулер", "/images/images04.jpg", "taken", 2);
+        b4.setDescription("Техники улучшения существующего кода без изменения его внешнего поведения.");
+        list.add(b4);
+
         return list;
     }
 
