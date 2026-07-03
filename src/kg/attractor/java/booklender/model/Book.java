@@ -7,6 +7,7 @@ public class Book {
     private String image;
     private String status;
     private Integer takenBy;
+    private String description;
 
     public Book() {}
 
@@ -39,5 +40,12 @@ public class Book {
 
     public boolean isAvailable() {
         return "available".equalsIgnoreCase(status);
+    }
+
+    public String getDescription() {
+        return description;
+    }
+    public void setDescription(String description) {
+        this.description = description;
     }
 }
